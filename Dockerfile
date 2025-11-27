@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server.py .
 COPY load_balancer.py .
 COPY client.py .
+COPY benchmark.py .
 
 # Expõe as portas que podem ser usadas
 EXPOSE 5000 5001 5002
