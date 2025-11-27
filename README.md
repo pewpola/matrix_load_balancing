@@ -90,6 +90,62 @@ docker compose exec client python client.py
 docker compose down
 ```
 
+## 📊 Executar Benchmark (Serial vs Distribuído)
+
+O projeto inclui um sistema de benchmark que compara o desempenho entre processamento serial (1 servidor) e distribuído (2 servidores) em 15 casos de teste com tamanhos crescentes de matrizes.
+
+### Executar o benchmark:
+
+```bash
+# 1. Certifique-se de que os servidores e load balancer estão rodando
+docker compose up -d server1 server2 load_balancer
+
+# 2. Execute o benchmark
+docker compose run --rm benchmark
+
+# 3. Ver resultados em tempo real nos logs
+docker compose logs -f benchmark
+```
+
+### O que o benchmark faz:
+
+1. **Testa 15 casos** com matrizes de tamanhos crescentes (10×10 até 1000×1000)
+2. **Executa cada caso 3 vezes** e calcula a média para maior precisão
+3. **Compara tempos** de execução serial vs distribuído
+4. **Calcula speedup** e porcentagem de melhoria
+5. **Identifica o ponto de virada** onde o processamento distribuído passa a valer a pena
+6. **Gera relatório completo** em formato de tabela
+
+### Exemplo de saída:
+
+```
+╔══════╦═════════════════╦═════════════╦═════════════════╦══════════╦══════════════╦═════════════╗
+║ Caso ║ Dimensões       ║ Serial (s)  ║ Distribuído (s) ║ Speedup  ║ Melhoria (%) ║ Vencedor    ║
+╠══════╬═════════════════╬═════════════╬═════════════════╬══════════╬══════════════╬═════════════╣
+║    1 ║ 10×10×10        ║ 0.0234      ║ 0.0456          ║ 0.51x    ║ -95.12%      ║ SERIAL      ║
+║    2 ║ 20×20×20        ║ 0.0245      ║ 0.0467          ║ 0.52x    ║ -90.61%      ║ SERIAL      ║
+║  ... ║ ...             ║ ...         ║ ...             ║ ...      ║ ...          ║ ...         ║
+║    8 ║ 200×200×200     ║ 0.1234      ║ 0.0789          ║ 1.56x    ║ +36.05%      ║ DISTRIBUÍDO ║
+╚══════╩═════════════════╩═════════════╩═════════════════╩══════════╩══════════════╩═════════════╝
+
+✅ O processamento DISTRIBUÍDO começa a valer a pena a partir do:
+   CASO 8: 200×200×200
+   Speedup: 1.56x
+   Melhoria: +36.05%
+```
+
+### Visualizar resultados salvos:
+
+O benchmark salva automaticamente os resultados em `benchmark_results.txt`:
+
+```bash
+# Copiar arquivo de resultados do container para seu computador
+docker cp matrix_benchmark:/app/benchmark_results.txt .
+
+# Ou visualizar diretamente
+docker compose run --rm benchmark cat /app/benchmark_results.txt
+```
+
 ## 📊 Funcionamento
 
 1. **Cliente** gera duas matrizes:

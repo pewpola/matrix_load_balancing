@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 import time
 import os
+import threading
 
 
 class MatrixClient:
@@ -97,7 +98,8 @@ class MatrixClient:
     
     def multiply_distributed(self, matrix_a, matrix_b, num_servers=2):
         """
-        Realiza a multiplicação distribuída de matrizes
+        Realiza a multiplicação distribuída de matrizes EM PARALELO
+        Usa threading para enviar todas as tarefas simultaneamente aos servidores
         """
         print(f"\n[CLIENT] Iniciando multiplicação distribuída...")
         print(f"[CLIENT] Dividindo trabalho entre {num_servers} servidores")
@@ -109,15 +111,29 @@ class MatrixClient:
         for i, sub in enumerate(submatrices):
             print(f"  - Parte {i+1}: {sub.shape}")
         
-        # Envia cada submatriz para processamento
-        results = []
-        start_time = time.time()
+        # Lista para armazenar resultados na ordem correta
+        results = [None] * num_servers
+        threads = []
         
-        for i, submatrix in enumerate(submatrices):
-            task_id = f"TASK-{i+1}"
+        def process_task(index, submatrix):
+            """Função executada por cada thread para processar uma submatriz"""
+            task_id = f"TASK-{index+1}"
             print(f"\n[CLIENT] Enviando {task_id}...")
             result = self.send_to_load_balancer(submatrix, matrix_b, task_id)
-            results.append(result)
+            results[index] = result  # Armazena na posição correta
+        
+        start_time = time.time()
+        
+        # Cria e inicia todas as threads simultaneamente (PROCESSAMENTO PARALELO!)
+        print(f"\n[CLIENT] 🚀 Disparando {num_servers} requisições SIMULTANEAMENTE...")
+        for i, submatrix in enumerate(submatrices):
+            thread = threading.Thread(target=process_task, args=(i, submatrix))
+            threads.append(thread)
+            thread.start()
+        
+        # Aguarda todas as threads completarem
+        for thread in threads:
+            thread.join()
         
         end_time = time.time()
         
