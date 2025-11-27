@@ -7,7 +7,6 @@ import pickle
 import numpy as np
 import time
 import sys
-import threading
 from tabulate import tabulate
 
 
@@ -115,31 +114,16 @@ class BenchmarkClient:
     
     def distributed_multiplication(self, matrix_a, matrix_b, num_servers=2):
         """
-        Executa multiplicação distribuída entre múltiplos servidores EM PARALELO
-        Usa threading para enviar todas as tarefas simultaneamente
+        Executa multiplicação distribuída entre múltiplos servidores
         """
         submatrices = self.split_matrix(matrix_a, num_servers)
         
-        results = [None] * num_servers  # Lista para armazenar resultados na ordem
-        threads = []
-        
-        def process_submatrix(index, submatrix):
-            """Função executada por cada thread"""
-            task_id = f"DIST-{index+1}"
-            result = self.send_to_load_balancer(submatrix, matrix_b, task_id)
-            results[index] = result  # Armazena na posição correta
-        
-        # Cria e inicia todas as threads simultaneamente
+        results = []
         for i, submatrix in enumerate(submatrices):
-            thread = threading.Thread(target=process_submatrix, args=(i, submatrix))
-            threads.append(thread)
-            thread.start()
+            task_id = f"DIST-{i+1}"
+            result = self.send_to_load_balancer(submatrix, matrix_b, task_id)
+            results.append(result)
         
-        # Aguarda todas as threads terminarem
-        for thread in threads:
-            thread.join()
-        
-        # Concatena resultados na ordem correta
         final_result = np.vstack([r['result'] for r in results])
         return final_result
 
