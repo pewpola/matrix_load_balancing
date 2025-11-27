@@ -1,0 +1,66 @@
+services:
+  # Servidor 1
+  server1:
+    build: .
+    container_name: matrix_server1
+    environment:
+      - SERVER_ID=SERVER-1
+      - PORT=5001
+    command: python server.py 5001
+    networks:
+      - matrix_network
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # Servidor 2
+  server2:
+    build: .
+    container_name: matrix_server2
+    environment:
+      - SERVER_ID=SERVER-2
+      - PORT=5002
+    command: python server.py 5002
+    networks:
+      - matrix_network
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # Load Balancer
+  load_balancer:
+    build: .
+    container_name: matrix_load_balancer
+    command: python load_balancer.py
+    networks:
+      - matrix_network
+    ports:
+      - "5000:5000"
+    depends_on:
+      - server1
+      - server2
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # Cliente
+  client:
+    build: .
+    container_name: matrix_client
+    command: python client.py
+    networks:
+      - matrix_network
+    depends_on:
+      - load_balancer
+      - server1
+      - server2
+    stdin_open: true
+    tty: true
+
+networks:
+  matrix_network:
+    driver: bridge
