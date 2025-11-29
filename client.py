@@ -14,18 +14,18 @@ class MatrixClient:
         self.load_balancer_host = load_balancer_host
         self.load_balancer_port = load_balancer_port
     
-    def generate_matrices(self, rows_a, cols_a, cols_b):
+    def generate_matrices(self, rows_a, cols_a, rows_b, cols_b):
         """
         Gera duas matrizes aleatórias para multiplicação
         Matriz A: rows_a x cols_a
-        Matriz B: cols_a x cols_b
+        Matriz B: rows_b x cols_b
         """
         print(f"\n[CLIENT] Gerando matrizes...")
         print(f"[CLIENT] Matriz A: {rows_a}x{cols_a}")
-        print(f"[CLIENT] Matriz B: {cols_a}x{cols_b}")
+        print(f"[CLIENT] Matriz B: {rows_b}x{cols_b}")
         
         matrix_a = np.random.randint(1, 10, size=(rows_a, cols_a))
-        matrix_b = np.random.randint(1, 10, size=(cols_a, cols_b))
+        matrix_b = np.random.randint(1, 10, size=(rows_b, cols_b))
         
         print(f"[CLIENT] Matrizes geradas com sucesso!")
         return matrix_a, matrix_b
@@ -199,6 +199,9 @@ def main():
     # Executa multiplicação distribuída
     result_small = client.multiply_distributed(matrix_a_small, matrix_b_small, num_servers=2)
     
+    print(f"\n[CLIENT] Matriz Resultado (primeiras 10x10):")
+    print(result_small[:10, :10])
+    
     # Verifica resultado
     client.verify_result(matrix_a_small, matrix_b_small, result_small)
     
@@ -218,14 +221,25 @@ def main():
     # Configuração das matrizes
     rows_a = 100
     cols_a = 100
+    rows_b = 100
     cols_b = 100
     num_servers = 2
     
     # Gera matrizes
-    matrix_a, matrix_b = client.generate_matrices(rows_a, cols_a, cols_b)
+    matrix_a, matrix_b = client.generate_matrices(rows_a, cols_a, rows_b, cols_b)
+    
+    # Exibe primeiras 10x10 das matrizes
+    print(f"\n[CLIENT] Matriz A (primeiras 10x10):")
+    print(matrix_a[:10, :10])
+    print(f"\n[CLIENT] Matriz B (primeiras 10x10):")
+    print(matrix_b[:10, :10])
     
     # Executa multiplicação distribuída
     result = client.multiply_distributed(matrix_a, matrix_b, num_servers)
+    
+    # Exibe primeiras 10x10 do resultado
+    print(f"\n[CLIENT] Matriz Resultado (primeiras 10x10):")
+    print(result[:10, :10])
     
     # Verifica resultado
     client.verify_result(matrix_a, matrix_b, result)

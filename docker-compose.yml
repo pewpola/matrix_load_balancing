@@ -61,6 +61,38 @@ services:
     stdin_open: true
     tty: true
 
+  # Benchmark (executar manualmente)
+  benchmark:
+    build: .
+    container_name: matrix_benchmark
+    command: python benchmark.py
+    networks:
+      - matrix_network
+    depends_on:
+      - load_balancer
+      - server1
+      - server2
+    stdin_open: true
+    tty: true
+    profiles:
+      - benchmark
+
+  # Benchmark Manual (usuário define tamanhos)
+  benchmark_manual:
+    build: .
+    container_name: matrix_benchmark_manual
+    command: python benchmark_manual.py
+    networks:
+      - matrix_network
+    depends_on:
+      - load_balancer
+      - server1
+      - server2
+    stdin_open: true
+    tty: true
+    profiles:
+      - benchmark-manual
+
 networks:
   matrix_network:
     driver: bridge
