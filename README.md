@@ -92,9 +92,11 @@ docker compose down
 
 ## 📊 Executar Benchmark (Serial vs Distribuído)
 
-O projeto inclui um sistema de benchmark que compara o desempenho entre processamento serial (1 servidor) e distribuído (2 servidores) em 15 casos de teste com tamanhos crescentes de matrizes.
+O projeto inclui dois sistemas de benchmark que comparam o desempenho entre processamento serial (1 servidor) e distribuído (2 servidores):
 
-### Executar o benchmark:
+### 1. Benchmark Automático (15 casos pré-definidos)
+
+Testa automaticamente 15 casos de teste com tamanhos crescentes de matrizes.
 
 ```bash
 # 1. Certifique-se de que os servidores e load balancer estão rodando
@@ -107,14 +109,67 @@ docker compose run --rm benchmark
 docker compose logs -f benchmark
 ```
 
-### O que o benchmark faz:
+### 2. Benchmark Manual (Você define as dimensões)
 
+Permite que você defina manualmente as dimensões das matrizes e o número de execuções.
+
+```bash
+# 1. Certifique-se de que os servidores e load balancer estão rodando
+docker compose up -d server1 server2 load_balancer
+
+# 2. Execute o benchmark manual
+docker compose run --rm benchmark_manual
+```
+
+#### Funcionalidades do Benchmark Manual:
+
+- **Dimensões personalizadas**: Você define o número de linhas e colunas de cada matriz
+- **Validação automática**: Verifica se as dimensões são compatíveis para multiplicação
+- **Input manual para matrizes pequenas**: Para matrizes até 4×4, você pode escolher:
+  - Preencher manualmente (valor por valor, linha por linha)
+  - Gerar aleatoriamente (valores entre 1 e 9)
+- **Múltiplos testes**: Execute quantos testes quiser em sequência
+- **Estatísticas acumuladas**: Histórico completo de todos os testes realizados na sessão
+
+#### Exemplo de uso do Benchmark Manual:
+
+```
+Digite o número de LINHAS da Matriz A: 2
+Digite o número de COLUNAS da Matriz A: 2
+Digite o número de LINHAS da Matriz B: 2
+Digite o número de COLUNAS da Matriz B: 2
+
+Como deseja definir a Matriz A (2×2)?
+  1 - Preencher manualmente (valor por valor)
+  2 - Gerar aleatoriamente (valores entre 1 e 9)
+Escolha (1 ou 2): 1
+
+Linha 1/2 (digite 2 valores separados por espaço):
+  Valores: 1 2
+Linha 2/2 (digite 2 valores separados por espaço):
+  Valores: 3 4
+
+Quantas execuções para calcular a média? (recomendado: 3): 3
+```
+
+### O que os benchmarks fazem:
+
+#### Benchmark Automático:
 1. **Testa 15 casos** com matrizes de tamanhos crescentes (10×10 até 1000×1000)
 2. **Executa cada caso 3 vezes** e calcula a média para maior precisão
 3. **Compara tempos** de execução serial vs distribuído
 4. **Calcula speedup** e porcentagem de melhoria
 5. **Identifica o ponto de virada** onde o processamento distribuído passa a valer a pena
 6. **Gera relatório completo** em formato de tabela
+
+#### Benchmark Manual:
+1. **Validação inicial** com matriz 2×2 conhecida
+2. **Você define** as dimensões de cada matriz
+3. **Input manual opcional** para matrizes até 4×4
+4. **Múltiplas execuções** com média calculada
+5. **Exibe primeiras 10×10** de cada matriz gerada
+6. **Histórico completo** de todos os testes realizados na sessão
+7. **Comparação lado a lado** de serial vs distribuído para cada teste
 
 ### Exemplo de saída:
 
@@ -134,16 +189,25 @@ docker compose logs -f benchmark
    Melhoria: +36.05%
 ```
 
-### Visualizar resultados salvos:
+### Exemplo de saída do Benchmark Manual:
 
-O benchmark salva automaticamente os resultados em `benchmark_results.txt`:
+```
+================================================================================
+HISTÓRICO DE TESTES REALIZADOS
+================================================================================
 
-```bash
-# Copiar arquivo de resultados do container para seu computador
-docker cp matrix_benchmark:/app/benchmark_results.txt .
+╔════════════════════════╦════════════╦════════════╦═════════════════╦══════════╦══════════════╦═════════════╗
+║ Dimensões              ║ Execuções  ║ Serial (s) ║ Distribuído (s) ║ Speedup  ║ Melhoria (%) ║ Vencedor    ║
+╠════════════════════════╬════════════╬════════════╬═════════════════╬══════════╬══════════════╬═════════════╣
+║ (2×2) × (2×2)          ║          3 ║ 0.0026     ║ 0.0049          ║ 0.52x    ║ -92.84%      ║ SERIAL      ║
+║ (100×100) × (100×100)  ║          3 ║ 0.0234     ║ 0.0189          ║ 1.24x    ║ +19.23%      ║ DISTRIBUÍDO ║
+║ (500×500) × (500×500)  ║          3 ║ 2.4567     ║ 1.3456          ║ 1.83x    ║ +45.23%      ║ DISTRIBUÍDO ║
+╚════════════════════════╩════════════╩════════════╩═════════════════╩══════════╩══════════════╩═════════════╝
 
-# Ou visualizar diretamente
-docker compose run --rm benchmark cat /app/benchmark_results.txt
+📊 ESTATÍSTICAS GERAIS:
+   • Total de testes: 3
+   • Vitórias SERIAL: 1
+   • Vitórias DISTRIBUÍDO: 2
 ```
 
 ## 📊 Funcionamento
