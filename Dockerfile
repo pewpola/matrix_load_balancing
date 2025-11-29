@@ -11,6 +11,7 @@ COPY server.py .
 COPY load_balancer.py .
 COPY client.py .
 COPY benchmark.py .
+COPY benchmark_manual.py .
 
 # Expõe as portas que podem ser usadas
 EXPOSE 5000 5001 5002

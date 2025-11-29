@@ -1,6 +1,6 @@
 """
-Benchmark: Comparação entre Processamento Serial e Distribuído
-Avalia em que ponto o processamento distribuído começa a valer a pena
+Benchmark Manual: Comparação entre Processamento Serial e Distribuído
+O usuário define os tamanhos de matrizes que deseja testar
 """
 import socket
 import pickle
@@ -128,13 +128,130 @@ class BenchmarkClient:
         return final_result
 
 
-def run_benchmark():
+def get_matrix_dimensions():
     """
-    Executa benchmark com 15 casos de teste de tamanhos variados
+    Solicita ao usuário as dimensões das matrizes
+    """
+    print("\n" + "="*80)
+    print("CONFIGURAÇÃO DAS MATRIZES")
+    print("="*80)
+    print("\nPara multiplicar Matriz A × Matriz B:")
+    print("  • Matriz A deve ter dimensões: linhas × colunas")
+    print("  • Matriz B deve ter dimensões: linhas × colunas")
+    print("  • O número de COLUNAS de A deve ser igual ao número de LINHAS de B")
+    
+    while True:
+        try:
+            print("\n" + "-"*80)
+            rows_a = int(input("Digite o número de LINHAS da Matriz A: ").strip())
+            cols_a = int(input("Digite o número de COLUNAS da Matriz A: ").strip())
+            rows_b = int(input("Digite o número de LINHAS da Matriz B: ").strip())
+            cols_b = int(input("Digite o número de COLUNAS da Matriz B: ").strip())
+            
+            if rows_a <= 0 or cols_a <= 0 or rows_b <= 0 or cols_b <= 0:
+                print("\n❌ Erro: Todas as dimensões devem ser maiores que zero!")
+                continue
+            
+            if cols_a != rows_b:
+                print(f"\n❌ Erro: Número de COLUNAS de A ({cols_a}) deve ser igual ao número de LINHAS de B ({rows_b})!")
+                continue
+            
+            print(f"\n✓ Configuração:")
+            print(f"  • Matriz A: {rows_a}×{cols_a}")
+            print(f"  • Matriz B: {rows_b}×{cols_b}")
+            print(f"  • Resultado: {rows_a}×{cols_b}")
+            
+            confirm = input("\nConfirma estas dimensões? (s/n): ").strip().lower()
+            if confirm == 's':
+                return rows_a, cols_a, rows_b, cols_b
+            
+        except ValueError:
+            print("\n❌ Erro: Digite apenas números inteiros!")
+        except KeyboardInterrupt:
+            print("\n\n[BENCHMARK] Cancelado pelo usuário.")
+            sys.exit(0)
+
+
+def get_num_executions():
+    """
+    Solicita ao usuário quantas execuções realizar para média
+    """
+    while True:
+        try:
+            num_exec = int(input("\nQuantas execuções para calcular a média? (recomendado: 3): ").strip())
+            if num_exec <= 0:
+                print("❌ Erro: Número de execuções deve ser maior que zero!")
+                continue
+            return num_exec
+        except ValueError:
+            print("❌ Erro: Digite um número inteiro!")
+        except KeyboardInterrupt:
+            print("\n\n[BENCHMARK] Cancelado pelo usuário.")
+            sys.exit(0)
+
+
+def input_matrix_manually(rows, cols, matrix_name):
+    """
+    Permite ao usuário inserir manualmente os valores de uma matriz linha por linha
+    """
+    print(f"\n[INPUT] Insira os valores da Matriz {matrix_name} ({rows}×{cols})")
+    print(f"[INPUT] Digite os valores separados por espaço para cada linha")
+    
+    matrix = []
+    for i in range(rows):
+        while True:
+            try:
+                print(f"\nLinha {i+1}/{rows} (digite {cols} valores separados por espaço):")
+                line_input = input(f"  Valores: ").strip()
+                values = [int(x) for x in line_input.split()]
+                
+                if len(values) != cols:
+                    print(f"❌ Erro: Esperado {cols} valores, mas recebeu {len(values)}. Tente novamente.")
+                    continue
+                
+                matrix.append(values)
+                break
+            except ValueError:
+                print("❌ Erro: Digite apenas números inteiros válidos separados por espaço!")
+            except KeyboardInterrupt:
+                print("\n\n[BENCHMARK] Cancelado pelo usuário.")
+                sys.exit(0)
+    
+    return np.array(matrix, dtype=int)
+
+
+def get_matrix_input_mode(rows, cols, matrix_name):
+    """
+    Pergunta ao usuário se deseja preencher manualmente ou gerar aleatoriamente
+    """
+    if rows > 4 or cols > 4:
+        return 'random'
+    
+    print(f"\n[INPUT] Como deseja definir a Matriz {matrix_name} ({rows}×{cols})?")
+    print("  1 - Preencher manualmente (valor por valor)")
+    print("  2 - Gerar aleatoriamente (valores entre 1 e 9)")
+    
+    while True:
+        try:
+            choice = input("\nEscolha (1 ou 2): ").strip()
+            if choice == '1':
+                return 'manual'
+            elif choice == '2':
+                return 'random'
+            else:
+                print("❌ Erro: Digite 1 ou 2!")
+        except KeyboardInterrupt:
+            print("\n\n[BENCHMARK] Cancelado pelo usuário.")
+            sys.exit(0)
+
+
+def run_manual_benchmark():
+    """
+    Executa benchmark manual com dimensões definidas pelo usuário
     """
     print("="*80)
-    print("BENCHMARK: PROCESSAMENTO SERIAL vs DISTRIBUÍDO")
-    print("Análise de Performance com Multiplicação de Matrizes")
+    print("BENCHMARK MANUAL: PROCESSAMENTO SERIAL vs DISTRIBUÍDO")
+    print("Análise de Performance Personalizada")
     print("="*80)
     
     # Aguarda servidores iniciarem
@@ -194,45 +311,41 @@ def run_benchmark():
     else:
         print("\n[DEMO] ❌ ERRO NA VALIDAÇÃO!")
         print("[DEMO] Os resultados não coincidem. Verifique a implementação.")
+        return
     
-    print("\n" + "="*80)
-    print("INICIANDO TESTES DE PERFORMANCE")
-    print("="*80)
+    # Loop para permitir múltiplos testes
+    results_history = []
     
-    # Define 15 casos de teste com tamanhos crescentes
-    # Formato: (rows_a, cols_a, rows_b, cols_b)
-    test_cases = [
-        (10, 10, 10, 10),      # Caso 1: Muito pequeno
-        (20, 20, 20, 20),      # Caso 2
-        (30, 30, 30, 30),      # Caso 3
-        (50, 50, 50, 50),      # Caso 4
-        (75, 75, 75, 75),      # Caso 5
-        (100, 100, 100, 100),   # Caso 6
-        (150, 150, 150, 150),   # Caso 7
-        (200, 200, 200, 200),   # Caso 8
-        (300, 300, 300, 300),   # Caso 9
-        (400, 400, 400, 400),   # Caso 10
-        (500, 500, 500, 500),   # Caso 11
-        (600, 600, 600, 600),   # Caso 12
-        (700, 700, 700, 700),   # Caso 13
-        (800, 800, 800, 800),   # Caso 14
-        (1000, 1000, 1000, 1000) # Caso 15: Muito grande
-    ]
-    
-    results = []
-    parallel_wins_from = None
-    
-    print(f"\n[BENCHMARK] Executando {len(test_cases)} casos de teste...")
-    print(f"[BENCHMARK] Cada caso será executado 3 vezes para média de tempo\n")
-    
-    for idx, (rows_a, cols_a, rows_b, cols_b) in enumerate(test_cases, 1):
-        print(f"\n{'='*80}")
-        print(f"CASO {idx}/15: Matriz A({rows_a}×{cols_a}) × Matriz B({rows_b}×{cols_b})")
-        print(f"{'='*80}")
+    while True:
+        # Solicita dimensões ao usuário
+        rows_a, cols_a, rows_b, cols_b = get_matrix_dimensions()
         
-        # Gera matrizes para este caso
-        matrix_a = np.random.randint(1, 10, size=(rows_a, cols_a))
-        matrix_b = np.random.randint(1, 10, size=(rows_b, cols_b))
+        # Solicita número de execuções
+        num_executions = get_num_executions()
+        
+        print("\n" + "="*80)
+        print(f"TESTE: Matriz A({rows_a}×{cols_a}) × Matriz B({rows_b}×{cols_b})")
+        print(f"Execuções por teste: {num_executions}")
+        print("="*80)
+        
+        # Gera ou solicita input das matrizes
+        mode_a = get_matrix_input_mode(rows_a, cols_a, 'A')
+        if mode_a == 'manual':
+            matrix_a = input_matrix_manually(rows_a, cols_a, 'A')
+            print(f"\n[BENCHMARK] Matriz A preenchida manualmente!")
+        else:
+            print("\n[BENCHMARK] Gerando Matriz A aleatoriamente...")
+            matrix_a = np.random.randint(1, 10, size=(rows_a, cols_a))
+            print("[BENCHMARK] Matriz A gerada!")
+        
+        mode_b = get_matrix_input_mode(rows_b, cols_b, 'B')
+        if mode_b == 'manual':
+            matrix_b = input_matrix_manually(rows_b, cols_b, 'B')
+            print(f"\n[BENCHMARK] Matriz B preenchida manualmente!")
+        else:
+            print("\n[BENCHMARK] Gerando Matriz B aleatoriamente...")
+            matrix_b = np.random.randint(1, 10, size=(rows_b, cols_b))
+            print("[BENCHMARK] Matriz B gerada!")
         
         # Exibe primeiras 10x10 das matrizes
         print(f"\n[MATRIZES] Primeiras 10x10 - Matriz A:")
@@ -240,32 +353,34 @@ def run_benchmark():
         print(f"\n[MATRIZES] Primeiras 10x10 - Matriz B:")
         print(matrix_b[:10, :10])
         
-        # ========== TESTE SERIAL (3 execuções) ==========
+        # ========== TESTE SERIAL ==========
         print(f"\n[SERIAL] Executando processamento serial (1 servidor)...")
         serial_times = []
         
-        for run in range(3):
+        for run in range(num_executions):
+            print(f"  Execução {run+1}/{num_executions}...", end=" ", flush=True)
             start_time = time.time()
             result_serial = client.serial_multiplication(matrix_a, matrix_b)
             end_time = time.time()
             serial_time = end_time - start_time
             serial_times.append(serial_time)
-            print(f"  Execução {run+1}/3: {serial_time:.4f}s")
+            print(f"{serial_time:.4f}s")
         
         avg_serial_time = np.mean(serial_times)
         print(f"[SERIAL] Tempo médio: {avg_serial_time:.4f}s")
         
-        # ========== TESTE DISTRIBUÍDO (3 execuções) ==========
+        # ========== TESTE DISTRIBUÍDO ==========
         print(f"\n[DISTRIBUÍDO] Executando processamento distribuído (2 servidores)...")
         distributed_times = []
         
-        for run in range(3):
+        for run in range(num_executions):
+            print(f"  Execução {run+1}/{num_executions}...", end=" ", flush=True)
             start_time = time.time()
             result_distributed = client.distributed_multiplication(matrix_a, matrix_b, num_servers=2)
             end_time = time.time()
             distributed_time = end_time - start_time
             distributed_times.append(distributed_time)
-            print(f"  Execução {run+1}/3: {distributed_time:.4f}s")
+            print(f"{distributed_time:.4f}s")
         
         avg_distributed_time = np.mean(distributed_times)
         print(f"[DISTRIBUÍDO] Tempo médio: {avg_distributed_time:.4f}s")
@@ -276,10 +391,9 @@ def run_benchmark():
         
         winner = "DISTRIBUÍDO" if avg_distributed_time < avg_serial_time else "SERIAL"
         
-        if winner == "DISTRIBUÍDO" and parallel_wins_from is None:
-            parallel_wins_from = idx
-        
-        print(f"\n[ANÁLISE]")
+        print(f"\n" + "="*80)
+        print("RESULTADO DA ANÁLISE")
+        print("="*80)
         print(f"  Vencedor: {winner}")
         print(f"  Speedup: {speedup:.2f}x")
         if improvement > 0:
@@ -297,58 +411,52 @@ def run_benchmark():
         else:
             print(f"  ✗ ERRO: Resultados diferentes!")
         
-        # Armazena resultados
-        results.append({
-            'Caso': idx,
+        # Armazena no histórico
+        results_history.append({
             'Dimensões': f"({rows_a}×{cols_a}) × ({rows_b}×{cols_b})",
+            'Execuções': num_executions,
             'Serial (s)': f"{avg_serial_time:.4f}",
             'Distribuído (s)': f"{avg_distributed_time:.4f}",
             'Speedup': f"{speedup:.2f}x",
             'Melhoria (%)': f"{improvement:+.2f}%",
             'Vencedor': winner
         })
+        
+        # Pergunta se quer fazer outro teste
+        print("\n" + "="*80)
+        try:
+            another = input("\nDeseja testar outro tamanho de matriz? (s/n): ").strip().lower()
+            if another != 's':
+                break
+        except KeyboardInterrupt:
+            print("\n")
+            break
     
     # ========== RELATÓRIO FINAL ==========
-    print(f"\n\n{'='*80}")
-    print("RELATÓRIO FINAL - COMPARAÇÃO DE PERFORMANCE")
-    print(f"{'='*80}\n")
-    
-    # Tabela de resultados
-    print(tabulate(results, headers='keys', tablefmt='grid'))
-    
-    # Conclusões
-    print(f"\n{'='*80}")
-    print("CONCLUSÕES")
-    print(f"{'='*80}\n")
-    
-    if parallel_wins_from:
-        winning_case = results[parallel_wins_from - 1]
-        print(f"✅ O processamento DISTRIBUÍDO começa a valer a pena a partir do:")
-        print(f"   CASO {parallel_wins_from}: {winning_case['Dimensões']}")
-        print(f"   Speedup: {winning_case['Speedup']}")
-        print(f"   Melhoria: {winning_case['Melhoria (%)']}")
-    else:
-        print(f"⚠️  O processamento SERIAL foi mais rápido em todos os casos testados.")
-        print(f"   Isso pode indicar que o overhead de rede supera os benefícios")
-        print(f"   do paralelismo para os tamanhos testados.")
-    
-    # Estatísticas gerais
-    serial_wins = sum(1 for r in results if r['Vencedor'] == 'SERIAL')
-    distributed_wins = sum(1 for r in results if r['Vencedor'] == 'DISTRIBUÍDO')
-    
-    print(f"\n📊 ESTATÍSTICAS GERAIS:")
-    print(f"   • Total de casos: {len(results)}")
-    print(f"   • Vitórias SERIAL: {serial_wins}")
-    print(f"   • Vitórias DISTRIBUÍDO: {distributed_wins}")
+    if results_history:
+        print("\n\n" + "="*80)
+        print("HISTÓRICO DE TESTES REALIZADOS")
+        print("="*80 + "\n")
+        
+        print(tabulate(results_history, headers='keys', tablefmt='grid'))
+        
+        # Estatísticas gerais
+        serial_wins = sum(1 for r in results_history if r['Vencedor'] == 'SERIAL')
+        distributed_wins = sum(1 for r in results_history if r['Vencedor'] == 'DISTRIBUÍDO')
+        
+        print(f"\n📊 ESTATÍSTICAS GERAIS:")
+        print(f"   • Total de testes: {len(results_history)}")
+        print(f"   • Vitórias SERIAL: {serial_wins}")
+        print(f"   • Vitórias DISTRIBUÍDO: {distributed_wins}")
     
     print(f"\n{'='*80}")
-    print("BENCHMARK CONCLUÍDO!")
+    print("BENCHMARK MANUAL CONCLUÍDO!")
     print(f"{'='*80}\n")
 
 
 if __name__ == "__main__":
     try:
-        run_benchmark()
+        run_manual_benchmark()
     except KeyboardInterrupt:
         print("\n\n[BENCHMARK] Interrompido pelo usuário.")
     except Exception as e:
